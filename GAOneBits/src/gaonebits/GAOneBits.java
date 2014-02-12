@@ -118,9 +118,11 @@ public class GAOneBits {
             // select by fitness - choose above-average parent
             // System.out.println("selecting above-average parent");
             for (int i = 0; i < POPULATION_SIZE; i++) {
+                if(!dontUse[i]){
                 totalFitness += fitness[i];
+                }
             }
-            averageFitness = (double) totalFitness / POPULATION_SIZE;
+            averageFitness = (double) totalFitness / POPULATION_SIZE - this.ELITE_SIZE;
             // find random above-average parent
             do {
                 parent = rand.nextInt(POPULATION_SIZE);
@@ -176,13 +178,17 @@ public class GAOneBits {
     }  // runGA
 
     ///CODE ADDED BY AP
+    /**
+     * Method will identify the weakest individuals and mark them so they will not be used in next generation.
+     * @return boolean array identifying weakest individuals
+     */
     public boolean[] cullTheWeak() {
         boolean[] theWeak = new boolean[this.POPULATION_SIZE];
         for (int z = 0; z < this.ELITE_SIZE; z++) {
-            double lowestFitness = 0.0;
+            double lowestFitness = 99;
             int lowestIndex = 0;
             for (int i = 0; i < this.POPULATION_SIZE; i++) {
-                if (this.calculateFitness(this.population[i]) < lowestFitness
+                if (this.calculateFitness(this.population[i]) <= lowestFitness
                         && !theWeak[i]) {
                     lowestFitness = this.calculateFitness(this.population[i]);
                     lowestIndex = i;
@@ -191,6 +197,27 @@ public class GAOneBits {
             theWeak[lowestIndex] = true;
         }
         return theWeak;
+    }
+
+    /**
+     * Method identifies the elite among this population so they can be cloned into next generation
+     * @return boolean array identifying the elite individuals
+     */
+    public boolean[] identifyElites() {
+        boolean[] elites = new boolean[this.POPULATION_SIZE];
+        for (int z = 0; z < this.ELITE_SIZE; z++) {
+            double highestFitness = 0.0;
+            int eliteIndex = 0;
+            for (int i = 0; i < this.POPULATION_SIZE; i++) {
+                if (this.calculateFitness(this.population[i]) >= highestFitness
+                        && !elites[i]) {
+                    highestFitness = this.calculateFitness(this.population[i]);
+                    eliteIndex = i;
+                }
+            }
+            elites[eliteIndex] = true;
+        }
+        return elites;
     }
     //////////////////////
 
@@ -223,7 +250,7 @@ public class GAOneBits {
             if (rand.nextDouble() <= MUTATION_RATE) {
                 // flip one bit
                 int position = rand.nextInt(INDIVIDUAL_SIZE);
-                child[position] = rand.nextInt(5) + 1;; //altered to fit new values 1-5
+                child[position] = rand.nextInt(5) + 1; //altered to fit new values 1-5
             }
             // save child
             for (int j = 0; j < INDIVIDUAL_SIZE; j++) {
@@ -262,23 +289,6 @@ public class GAOneBits {
         averageFitness = totalFitness / POPULATION_SIZE;
 
     }  // createNextGeneration
-
-    public boolean[] identifyElites() {
-        boolean[] elites = new boolean[this.POPULATION_SIZE];
-        for (int z = 0; z < this.ELITE_SIZE; z++) {
-            double highestFitness = 0.0;
-            int eliteIndex = 0;
-            for (int i = 0; i < this.POPULATION_SIZE; i++) {
-                if (this.calculateFitness(this.population[i]) > highestFitness
-                        && !elites[i]) {
-                    highestFitness = this.calculateFitness(this.population[i]);
-                    eliteIndex = i;
-                }
-            }
-            elites[eliteIndex] = true;
-        }
-        return elites;
-    }
 
     private void printMember(int[] member) {
         for (int i = 0; i < INDIVIDUAL_SIZE - 1; i++) {
