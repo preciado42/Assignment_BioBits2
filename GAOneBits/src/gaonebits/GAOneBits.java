@@ -35,6 +35,7 @@ public class GAOneBits {
 
     // GA parameters
     private final int POPULATION_SIZE,
+            MAX_VALUE,
             INDIVIDUAL_SIZE, // one member of population
             GENERATION_MAX;	// forced halting independent of fitness
     private final double MUTATION_RATE,
@@ -59,6 +60,7 @@ public class GAOneBits {
         INDIVIDUAL_SIZE = 30;
         FITNESS_GOAL = 0.95;
         ELITE_SIZE = 3;
+        MAX_VALUE = 25;
 
         generation = 1;
         rand = new Random();
@@ -89,7 +91,7 @@ public class GAOneBits {
         // fill population with random ones and zeros
         for (int i = 0; i < POPULATION_SIZE; i++) {
             for (int j = 0; j < INDIVIDUAL_SIZE; j++) {
-                population[i][j] = rand.nextInt(5) + 1;  // zero or one		
+                population[i][j] = rand.nextInt(this.MAX_VALUE) + 1;  // zero or one		
             }  // one member of the population
         }  // entire population
 
@@ -150,7 +152,7 @@ public class GAOneBits {
         // fitness function: count one bits
         int fitness = 0;
         for (int i = 0; i < INDIVIDUAL_SIZE; i++) {
-            if (member[i] == 5) {        //changed this to reflect fact that we are looking for all 5's
+            if (member[i] == this.MAX_VALUE) {        //changed this to reflect fact that we are looking for all 5's
                 fitness += 1;
             }
         }
@@ -250,7 +252,7 @@ public class GAOneBits {
             if (rand.nextDouble() <= MUTATION_RATE) {
                 // flip one bit
                 int position = rand.nextInt(INDIVIDUAL_SIZE);
-                child[position] = rand.nextInt(5) + 1; //altered to fit new values 1-5
+                child[position] = rand.nextInt(this.MAX_VALUE) + 1; //altered to fit new values 1-5
             }
             // save child
             for (int j = 0; j < INDIVIDUAL_SIZE; j++) {
