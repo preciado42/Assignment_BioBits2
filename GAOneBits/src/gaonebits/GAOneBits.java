@@ -53,10 +53,10 @@ public class GAOneBits {
     public GAOneBits() {
 
         POPULATION_SIZE = 20;
-        GENERATION_MAX = 200;
-        MUTATION_RATE = 0.03;
+        GENERATION_MAX = 500;
+        MUTATION_RATE = 0.1;
         GOOD_PARENT_RATE = 0.8;
-        INDIVIDUAL_SIZE = 20;
+        INDIVIDUAL_SIZE = 30;
         FITNESS_GOAL = 0.95;
         ELITE_SIZE = 3;
 
