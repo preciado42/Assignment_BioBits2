@@ -1,17 +1,22 @@
 package gaonebits;
-/////// ASSIGNMENT BY ANGEL PRECIADO
 /* 
  Program: GAOneBits
  Course: Bio-inspired Computing, Spring 2014
- Author: J. Gurka  Edited by Angel Preciado
+ Author: J. Gurka, edits and changes by Angel Preciado
 
  Description:
  A genetic algorithm (GA) program to illustrate the basic operations of
  GAs.  This program attempts to produce "bit strings" of all ones, from an initial
- population of random bit strings.
+ population of random bit strings.  
 
  Versions.
  Version 1: Basic operations, parameters hard-coded, text output only.
+ Version 2: Added sections to the original code which will implement the following changes:
+ 1) Individuals can now have the digits 1 - 5 and the goal is to have all 5's.
+ 2) The top 3 individuals will be copied over to the new population as clones
+ 3) The bottom 3 percent are removed from the population
+       
+ All other aspects, besides parameters, are largely unchanged.
 
  Input: None.
 
@@ -24,7 +29,6 @@ package gaonebits;
 
  */
 
-import java.util.ArrayList;
 import java.util.Random;  // initial population values
 
 public class GAOneBits {
@@ -35,7 +39,8 @@ public class GAOneBits {
             GENERATION_MAX;	// forced halting independent of fitness
     private final double MUTATION_RATE,
             GOOD_PARENT_RATE,
-            FITNESS_GOAL;  // population average fitness goal
+            FITNESS_GOAL, // population average fitness goal
+            ELITE_SIZE;
 
     private int[][] population, newPopulation;
     private double[] fitness, newFitness;	// one value per population member
@@ -53,6 +58,7 @@ public class GAOneBits {
         GOOD_PARENT_RATE = 0.8;
         INDIVIDUAL_SIZE = 20;
         FITNESS_GOAL = 0.95;
+        ELITE_SIZE = 3;
 
         generation = 1;
         rand = new Random();
@@ -83,7 +89,7 @@ public class GAOneBits {
         // fill population with random ones and zeros
         for (int i = 0; i < POPULATION_SIZE; i++) {
             for (int j = 0; j < INDIVIDUAL_SIZE; j++) {
-                population[i][j] = rand.nextInt(2);  // zero or one		
+                population[i][j] = rand.nextInt(5) + 1;  // zero or one		
             }  // one member of the population
         }  // entire population
 
@@ -101,7 +107,7 @@ public class GAOneBits {
 
     }  // createInitialPopulation
 
-    public int selectParent(boolean[] alreadyUsed) {
+    public int selectParent(boolean[] dontUse) {
         // printMethod("SelectParent");
         // select parent by mostly choosing above-average parents
         int parent;
@@ -118,12 +124,18 @@ public class GAOneBits {
             // find random above-average parent
             do {
                 parent = rand.nextInt(POPULATION_SIZE);
-                if (fitness[parent] >= averageFitness) {
+                if (fitness[parent] >= averageFitness && !dontUse[parent]) {
                     found = true;
                 }
             } while (!found);
-        } else {  //  choose random parent, ignore fitness
+        } else {  //  choose random parent, ignore fitness///ADDED: also check its not from the bottom 3 individuals
             // System.out.println("selecting random parent");
+            do {
+                parent = rand.nextInt(POPULATION_SIZE);
+                if (!dontUse[parent]) {
+                    found = true;
+                }
+            } while (!found);
             parent = rand.nextInt(POPULATION_SIZE);
         }
 
@@ -136,7 +148,9 @@ public class GAOneBits {
         // fitness function: count one bits
         int fitness = 0;
         for (int i = 0; i < INDIVIDUAL_SIZE; i++) {
-            fitness += member[i];
+            if (member[i] == 5) {        //changed this to reflect fact that we are looking for all 5's
+                fitness += 1;
+            }
         }
         return fitness;
     }
@@ -161,24 +175,38 @@ public class GAOneBits {
 
     }  // runGA
 
+    ///CODE ADDED BY AP
+    public boolean[] cullTheWeak() {
+        boolean[] theWeak = new boolean[this.POPULATION_SIZE];
+        for (int z = 0; z < this.ELITE_SIZE; z++) {
+            double lowestFitness = 0.0;
+            int lowestIndex = 0;
+            for (int i = 0; i < this.POPULATION_SIZE; i++) {
+                if (this.calculateFitness(this.population[i]) < lowestFitness
+                        && !theWeak[i]) {
+                    lowestFitness = this.calculateFitness(this.population[i]);
+                    lowestIndex = i;
+                }
+            }
+            theWeak[lowestIndex] = true;
+        }
+        return theWeak;
+    }
+    //////////////////////
+
     private void createNextGeneration() {
         //printMethod("createNextGeneration");
-        ////////////////////////////////
-        //////////////CODE ADDED BY ME
-        boolean[] alreadyUsed = new boolean[POPULATION_SIZE]; //used to keep track of indiviudals
-                                //already selected to be used as an elite, or culled from the bottom
-        int eliteNumber = (int) (POPULATION_SIZE * .10);
-
-        int[][] elites = cloneElites(alreadyUsed, eliteNumber);
-        this.cullTheWeak(alreadyUsed, eliteNumber);
-        //////////////////////////////////////^^^^^^
         int[] parent1, parent2,
                 child = new int[INDIVIDUAL_SIZE];
 
-        for (int i = 0; i < POPULATION_SIZE - eliteNumber; i++) {
+        //////////////CODE ADDED - ap
+        boolean[] remove = this.cullTheWeak();
+        boolean[] elites = identifyElites();
 
-            parent1 = population[selectParent(alreadyUsed)];
-            parent2 = population[selectParent(alreadyUsed)];
+        for (int i = 0; i < POPULATION_SIZE - this.ELITE_SIZE; i++) {
+
+            parent1 = population[selectParent(remove)];
+            parent2 = population[selectParent(remove)];
 
             crossoverPoint = rand.nextInt(INDIVIDUAL_SIZE);
 
@@ -195,9 +223,8 @@ public class GAOneBits {
             if (rand.nextDouble() <= MUTATION_RATE) {
                 // flip one bit
                 int position = rand.nextInt(INDIVIDUAL_SIZE);
-                child[position] = child[position] == 0 ? 1 : 0;
+                child[position] = rand.nextInt(5) + 1;; //altered to fit new values 1-5
             }
-
             // save child
             for (int j = 0; j < INDIVIDUAL_SIZE; j++) {
                 newPopulation[i][j] = child[j];
@@ -205,19 +232,25 @@ public class GAOneBits {
             newFitness[i] = calculateFitness(child);
 
         }  // create all new children
-        
-        //add the elites into the new population
-        for (int i = POPULATION_SIZE - eliteNumber; i < this.POPULATION_SIZE; i++) {
-            for (int j = 0; j < this.INDIVIDUAL_SIZE; j++) {
-                newPopulation[i][j] = elites[i][j];
+        ///////////////CODE ADDED BY AP
+        //here we must now identify the top 3 and clone them into the next generation
+        //note, that no mutation or crossover is done with these elites so a simple copy over
+        //will be sufficient to implement this
+        for (int i = this.POPULATION_SIZE - (int) this.ELITE_SIZE; i < this.POPULATION_SIZE; i++) {
+            boolean found = false;
+            for (int j = 0; j < this.POPULATION_SIZE; j++) {
+                if (elites[j] && !found) {  //found an elite, now copy over
+                    elites[j] = false;  //reset elite to false
+                    found = true;
+                    for (int k = 0; k < this.INDIVIDUAL_SIZE; k++) {
+                        newPopulation[i][k] = this.population[j][k];
+                        newFitness[i] = calculateFitness(this.population[j]);
+                    }
+                }
             }
-            newFitness[i] = this.getFitness(i);
         }
-        
-        
 
-        ////////////////////////////////////////////////////
-        //dont touch this for now
+        ///////////////////END OF CODE ADDED
         // update with new generation		
         population = newPopulation;
         fitness = newFitness;
@@ -230,20 +263,21 @@ public class GAOneBits {
 
     }  // createNextGeneration
 
-
-    /**
-     * Helper method for sort, will calculate an individuals fitness based ont
-     * he passed in index
-     *
-     * @param i individual
-     * @return the individuals fitness
-     */
-    public int getFitness(int i) {
-        int fitness = 0;
-        for (int j = 0; j < this.INDIVIDUAL_SIZE; j++) {
-            fitness += population[i][j];
+    public boolean[] identifyElites() {
+        boolean[] elites = new boolean[this.POPULATION_SIZE];
+        for (int z = 0; z < this.ELITE_SIZE; z++) {
+            double highestFitness = 0.0;
+            int eliteIndex = 0;
+            for (int i = 0; i < this.POPULATION_SIZE; i++) {
+                if (this.calculateFitness(this.population[i]) > highestFitness
+                        && !elites[i]) {
+                    highestFitness = this.calculateFitness(this.population[i]);
+                    eliteIndex = i;
+                }
+            }
+            elites[eliteIndex] = true;
         }
-        return fitness;
+        return elites;
     }
 
     private void printMember(int[] member) {
@@ -289,37 +323,6 @@ public class GAOneBits {
         gaBits.createInitialPopulation();
         gaBits.runGA();
         //gaBits.reportResults();
-    }
-
-    private int[][] cloneElites(boolean[] alreadyUsed, int eliteNum) {
-        int[][] elites = new int[this.POPULATION_SIZE][this.INDIVIDUAL_SIZE];
-        for (int k = 0; k < eliteNum; k++) {
-            int elite = 0;
-            int highestFitness = 0;
-            for (int i = 0; i < this.POPULATION_SIZE; i++) { //get highest fitness individual
-                if (this.getFitness(i) > highestFitness || !alreadyUsed[i]) {
-                    elite = i;
-                    highestFitness = this.getFitness(i);
-                }
-            }
-            System.arraycopy(this.population[elite], 0, elites[elite], 0, this.INDIVIDUAL_SIZE);
-            alreadyUsed[elite] = true;
-        }
-        return elites;
-    }
-
-    private void cullTheWeak(boolean[] alreadyUsed, int bottom) {
-        for (int i = 0; i < bottom; i++) {
-            int lowestFitness = 999;
-            int unFit = 0;
-            for (int j = 0; j < this.POPULATION_SIZE; j++) {
-                if(this.getFitness(j) < lowestFitness){
-                    lowestFitness = this.getFitness(j);
-                    unFit = j;
-                }
-            }
-            alreadyUsed[unFit] = true;
-        }
     }
 
 }
